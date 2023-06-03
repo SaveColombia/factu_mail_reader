@@ -18,7 +18,16 @@ access(env_path, fs.constants.R_OK).catch((e) => {
     process.exit(1)
 })
 
-dotenv.config({ path: env_path })
+const { parsed, error } = dotenv.config({ path: env_path })
+
+if (error) {
+    throw error
+}
+
+if (parsed){
+    console.log('Dotenv Parsed Output')
+    console.log(parsed)
+}
 
 const interval = 10 * 60 * 1000
 
