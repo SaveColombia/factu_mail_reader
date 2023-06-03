@@ -203,11 +203,17 @@ export default class MailProcessor {
 
     /**
      * Fetches and queues messages to be proccesed
+     * @throws {Error} when ATTACHMENTS_PATH undefined / not accesible / can't be created
      */
     async #fetchMessages() {
+        if (!process.env.ATTACHMENTS_PATH) {
+            throw new Error('No attachments path')
+        }
+
         const timestampDir = `${process.env.ATTACHMENTS_PATH}/${DateTime.now().toFormat('yyyyMMddHHmm')}/`
 
         await fs.mkdir(timestampDir, { recursive: true })
+        await fs.access(timestampDir, fs.constants.R_OK | fs.constants.W_OK)
 
         if (typeof this.#client.mailbox === 'boolean') {
             return
