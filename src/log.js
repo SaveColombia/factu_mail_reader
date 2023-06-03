@@ -1,6 +1,5 @@
 import { mkdirSync, existsSync } from 'node:fs'
 import { DateTime } from 'luxon'
-import os from 'os'
 import pino from 'pino'
 
 export const buildLogger = async () => pino(pino.destination(buildLogPath()))
