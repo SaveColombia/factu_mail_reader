@@ -4,8 +4,21 @@ import { buildLogger } from './log.js'
 import { buildImapClient } from './utils.js'
 import MailProcessor from './processor.js'
 import BillingParser from './parser.js'
+import * as fs from 'node:fs'
+import { access } from 'node:fs/promises'
 
-dotenv.config({ path: process.env.ENV_PATH })
+const env_path = process.env.ENV_PATH
+
+if (!env_path) {
+    throw new Error('ENV_PATH not found')
+}
+
+access(env_path, fs.constants.R_OK).catch((e) => {
+    console.error(e)
+    process.exit(1)
+})
+
+dotenv.config({ path: env_path })
 
 const interval = 10 * 60 * 1000
 
