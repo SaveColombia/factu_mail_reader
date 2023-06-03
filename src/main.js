@@ -5,7 +5,7 @@ import { buildImapClient } from './utils.js'
 import MailProcessor from './processor.js'
 import BillingParser from './parser.js'
 
-dotenv.config()
+dotenv.config({ path: process.env.ENV_PATH })
 
 const interval = 10 * 60 * 1000
 
@@ -35,7 +35,6 @@ const main = async () => {
             log.info('Interval tick')
             mailProcessor.processMessages()
         }, interval)
-
     } catch (e) {
         console.error(e)
         if (e instanceof Error) {
