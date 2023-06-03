@@ -1,4 +1,6 @@
 import * as fs from 'node:fs/promises'
+import os from 'node:os'
+import path from 'node:path'
 import unzipper from 'unzipper'
 import { DateTime } from 'luxon'
 import { ImapFlow } from 'imapflow'
@@ -60,7 +62,7 @@ export default class MailProcessor {
                 this.#client.download(msg.uid.toString(), pdfNode, { uid: true }),
             ])
 
-            const tmpdir = fs.mkdtemp('')
+            const tmpdir = fs.mkdtemp(process.env.ATTACHMENTS_PATH + path.sep)
 
             const xmlPath = `${tmpdir}/${xmlDownload.meta.filename}`
             const pdfPath = `${tmpdir}/${pdfDownload.meta.filename}`
@@ -71,7 +73,7 @@ export default class MailProcessor {
             const jsonPath = xmlPath.replace('.xml', '.json')
 
             await exec(buildCommand(jsonPath, xmlPath, pdfPath))
-            await this.#moveMessage(msg.uid.toString(), 'Read', client, this.#log)
+            await this.#moveMessage(msg.uid.toString(), process.env.GOOD_MAILBOX, client, this.#log)
         } catch (e) {
             console.error(e)
 
@@ -79,7 +81,7 @@ export default class MailProcessor {
                 this.#log.error({ error: e.message }, 'Error processing Message')
             }
 
-            await this.#moveMessage(msg.uid.toString(), 'Error')
+            await this.#moveMessage(msg.uid.toString(), process.env.BAD_MAILBOX)
         }
     }
 
@@ -144,7 +146,7 @@ export default class MailProcessor {
 
                 await fs.writeFile(jsonPath, JSON.stringify(data))
                 await exec(buildCommand(jsonPath, xmlPath, pdfPath))
-                await this.#moveMessage(msg.uid.toString(), 'Read')
+                await this.#moveMessage(msg.uid.toString(), process.env.GOOD_MAILBOX)
 
                 fs.rm(tmpdir, { recursive: true, force: true })
             } else {
@@ -157,7 +159,7 @@ export default class MailProcessor {
 
             fs.rm(tmpdir, { recursive: true, force: true })
 
-            await this.#moveMessage(msg.uid.toString(), 'Error')
+            await this.#moveMessage(msg.uid.toString(), process.env.BAD_MAILBOX)
         }
     }
 
