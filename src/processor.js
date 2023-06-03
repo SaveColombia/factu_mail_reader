@@ -53,16 +53,15 @@ export default class MailProcessor {
      *
      * @param {string} xmlNode
      * @param {string} pdfNode
+     * @param {string} tmpdir
      * @param {import('imapflow').FetchMessageObject} msg
      */
-    async #processXmlPdfNode(xmlNode, pdfNode) {
+    async #processXmlPdfNode(xmlNode, pdfNode, tmpdir, msg) {
         try {
             const [xmlDownload, pdfDownload] = await Promise.all([
                 this.#client.download(msg.uid.toString(), xmlNode, { uid: true }),
                 this.#client.download(msg.uid.toString(), pdfNode, { uid: true }),
             ])
-
-            const tmpdir = fs.mkdtemp(process.env.ATTACHMENTS_PATH + path.sep)
 
             const xmlPath = `${tmpdir}/${xmlDownload.meta.filename}`
             const pdfPath = `${tmpdir}/${pdfDownload.meta.filename}`
@@ -173,6 +172,8 @@ export default class MailProcessor {
             pdfNode,
             zipNode = null
 
+        const tmpdir = await fs.mkdtemp(timestampDir)
+
         // Look for valid attachments
         for (const node of msg.bodyStructure.childNodes) {
             if (!node.dispositionParameters?.filename) {
@@ -193,10 +194,10 @@ export default class MailProcessor {
         }
 
         if (xmlNode && pdfNode) {
-            this.#processXmlPdfNode(xmlNode, pdfNode, msg)
+            this.#processXmlPdfNode(xmlNode, pdfNode, tmpdir, msg)
         } // Download and process zip if exists
         else if (zipNode) {
-            this.#processZipNode(zipNode, await fs.mkdtemp(timestampDir), msg)
+            this.#processZipNode(zipNode, tmpdir, msg)
         }
     }
 
