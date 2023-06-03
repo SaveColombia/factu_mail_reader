@@ -24,11 +24,6 @@ if (error) {
     throw error
 }
 
-if (parsed){
-    console.log('Dotenv Parsed Output')
-    console.log(parsed)
-}
-
 const interval = 10 * 60 * 1000
 
 const main = async () => {
