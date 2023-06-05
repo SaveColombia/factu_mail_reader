@@ -15,12 +15,8 @@ const buildLogPath = () => {
         throw new Error('MUST SETUP A LOGGING PATH')
     }
 
-    const now = DateTime.now()
-
-    const date = now.toFormat('yyyyMMdd')
-    const time = now.toFormat('HHmm')
-
-    const directory = `${process.env.LOGGING_PATH}/${date}`
+    const date = DateTime.now().toFormat('yyyyMMdd')
+    const directory = process.env.LOGGING_PATH
 
     if (!mkdirSync(directory, { recursive: true })) {
         if (!existsSync(directory)) {
@@ -28,5 +24,5 @@ const buildLogPath = () => {
         }
     }
 
-    return `${directory}/${time}.log`
+    return `${directory}/${date}.log`
 }
