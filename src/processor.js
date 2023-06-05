@@ -1,6 +1,4 @@
 import * as fs from 'node:fs/promises'
-import os from 'node:os'
-import path from 'node:path'
 import unzipper from 'unzipper'
 import { DateTime } from 'luxon'
 import { ImapFlow } from 'imapflow'
@@ -73,7 +71,7 @@ export default class MailProcessor {
             const jsonPath = xmlPath.replace('.xml', '.json')
 
             await exec(buildCommand(jsonPath, xmlPath, pdfPath))
-            await this.#moveMessage(msg.uid.toString(), process.env.GOOD_MAILBOX, client, this.#log)
+            this.#moveMessage(msg.uid.toString(), process.env.GOOD_MAILBOX, client, this.#log)
         } catch (e) {
             console.error(e)
 
@@ -81,7 +79,7 @@ export default class MailProcessor {
                 this.#log.error({ error: e.message }, 'Error processing Message')
             }
 
-            await this.#moveMessage(msg.uid.toString(), process.env.BAD_MAILBOX)
+            this.#moveMessage(msg.uid.toString(), process.env.BAD_MAILBOX)
         }
     }
 
@@ -89,7 +87,7 @@ export default class MailProcessor {
      *
      * @param {string} zipNode
      * @param {string} tmpdir
-     * @param {FetchMessageObject} msg
+     * @param {import('imapflow').FetchMessageObject} msg
      */
     #processZipNode = async (zipNode, tmpdir, msg) => {
         try {
@@ -146,7 +144,7 @@ export default class MailProcessor {
 
                 await fs.writeFile(jsonPath, JSON.stringify(data))
                 await exec(buildCommand(jsonPath, xmlPath, pdfPath))
-                await this.#moveMessage(msg.uid.toString(), process.env.GOOD_MAILBOX)
+                this.#moveMessage(msg.uid.toString(), process.env.GOOD_MAILBOX)
 
                 fs.rm(tmpdir, { recursive: true, force: true })
             } else {
@@ -156,10 +154,8 @@ export default class MailProcessor {
             console.error(e)
 
             this.#log.error({ output: e.stdout?.trim() ?? '', error: e.message ?? '' }, 'Could not process mail data')
-
             fs.rm(tmpdir, { recursive: true, force: true })
-
-            await this.#moveMessage(msg.uid.toString(), process.env.BAD_MAILBOX)
+            this.#moveMessage(msg.uid.toString(), process.env.BAD_MAILBOX)
         }
     }
 
@@ -170,7 +166,7 @@ export default class MailProcessor {
      */
     async #processMessage(msg, timestampDir) {
         if (!isIterable(msg?.bodyStructure?.childNodes ?? null)) {
-            await this.#moveMessage(msg.uid.toString(), process.env.BAD_MAILBOX)
+            this.#moveMessage(msg.uid.toString(), process.env.BAD_MAILBOX)
             return
         }
 
@@ -233,7 +229,12 @@ export default class MailProcessor {
             const messages = this.#client.fetch('1:*', { uid: true, bodyStructure: true })
 
             for await (const msg of messages) {
-                await this.#processMessage(msg, timestampDir)
+                try {
+                    this.#processMessage(msg, timestampDir)
+                } catch (error) {
+                    this.#moveMessage(msg.uid.toString(), process.env.BAD_MAILBOX)
+                    continue
+                }
             }
         } catch (e) {
             console.error(e)
@@ -252,6 +253,6 @@ export default class MailProcessor {
      * Process messages in a given Mailbox
      */
     async processMessages() {
-        await this.#fetchMessages()
+        this.#fetchMessages()
     }
 }
