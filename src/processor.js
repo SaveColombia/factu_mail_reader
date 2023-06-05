@@ -200,6 +200,9 @@ export default class MailProcessor {
         } // Download and process zip if exists
         else if (zipNode) {
             this.#processZipNode(zipNode, tmpdir, msg)
+        } else {
+            this.#log.info({ uid: msg.uid, nodes: msg.bodyStructure.childNodes }, 'This message has no valid nodes')
+            this.#moveMessage(msg.uid.toString(), process.env.BAD_MAILBOX)
         }
     }
 
