@@ -30,15 +30,19 @@ const main = async () => {
     const log = await buildLogger()
 
     try {
+        console.log('Daemon started')
+
         const client = buildImapClient()
         await client.connect()
 
         let lock = await client.getMailboxLock('INBOX').catch((e) => {
+            console.error(e)
             log.error('Mailbox does not exist')
             process.exit(1)
         })
 
         if (!lock) {
+            console.error('Lock not acquired')
             log.error('Lock not acquired')
             return
         }
