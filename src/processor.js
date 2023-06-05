@@ -6,6 +6,7 @@ import { DateTime } from 'luxon'
 import { ImapFlow } from 'imapflow'
 import { buildCommand, exec } from './utils.js'
 import BillingParser from './parser.js'
+import { isIterable } from './utils.js'
 
 export default class MailProcessor {
     #client
@@ -164,10 +165,15 @@ export default class MailProcessor {
 
     /**
      *
-     * @param {FetchMessageObject} msg
+     * @param {import('imapflow').FetchMessageObject} msg
      * @param {string} timestampDir
      */
     async #processMessage(msg, timestampDir) {
+        if (!isIterable(msg?.bodyStructure?.childNodes ?? null)) {
+            await this.#moveMessage(msg.uid.toString(), process.env.BAD_MAILBOX)
+            return
+        }
+
         let xmlNode,
             pdfNode,
             zipNode = null

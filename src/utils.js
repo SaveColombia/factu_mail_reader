@@ -75,3 +75,16 @@ const configureUserPasswordImapClient = () =>
             pass: process.env.IMAP_PASSWORD || '',
         },
     })
+
+/**
+ * Determine whether the given `input` is iterable.
+ *
+ * @returns {Boolean}
+ */
+export const isIterable = (input) => {
+    if (input === null || input === undefined) {
+        return false
+    }
+
+    return typeof input[Symbol.iterator] === 'function'
+}
