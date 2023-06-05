@@ -40,11 +40,11 @@ export default class MailProcessor {
             console.error(e)
 
             if (e instanceof Error) {
-                this.#log.error({ error: e.message }, 'Error moving message')
+                this.#log.error({ uid, error: e.message }, 'Error moving message')
                 return
             }
 
-            this.#log.error({}, 'Error moving message')
+            this.#log.error({ uid }, 'Error moving message')
         }
     }
 
@@ -74,11 +74,7 @@ export default class MailProcessor {
             this.#moveMessage(msg.uid.toString(), process.env.GOOD_MAILBOX, client, this.#log)
         } catch (e) {
             console.error(e)
-
-            if (e instanceof Error) {
-                this.#log.error({ error: e.message }, 'Error processing Message')
-            }
-
+            this.#log.error({ uid: msg.uid, subj: msg.envelope.subject, error: e }, 'Error processing Message')
             this.#moveMessage(msg.uid.toString(), process.env.BAD_MAILBOX)
         }
     }
@@ -117,6 +113,9 @@ export default class MailProcessor {
 
                     await fs.writeFile(xmlPath, entry).catch((e) => {
                         console.error(e)
+                        if (e instanceof Error) {
+                            this.#log.error(e.message)
+                        }
                     })
                 }
 
@@ -125,6 +124,7 @@ export default class MailProcessor {
                     pdfPath = `${tmpdir}/${entry.path}`
 
                     await fs.writeFile(`${tmpdir}/${entry.path}`, entry).catch((e) => {
+                        console.error(e)
                         if (e instanceof Error) {
                             this.#log.error(e.message)
                         }
@@ -153,7 +153,10 @@ export default class MailProcessor {
         } catch (e) {
             console.error(e)
 
-            this.#log.error({ output: e.stdout?.trim() ?? '', error: e.message ?? '' }, 'Could not process mail data')
+            this.#log.error(
+                { uid: msg.uid, subj: msg.envelope.subject, output: e.stdout?.trim() ?? '', error: e.message ?? '' },
+                'Could not process mail data'
+            )
             fs.rm(tmpdir, { recursive: true, force: true })
             this.#moveMessage(msg.uid.toString(), process.env.BAD_MAILBOX)
         }
@@ -166,6 +169,10 @@ export default class MailProcessor {
      */
     async #processMessage(msg, timestampDir) {
         if (!isIterable(msg?.bodyStructure?.childNodes ?? null)) {
+            this.#log(
+                { uid: msg.uid, subj: msg.envelope.subject, error: 'This message has no child nodes' },
+                'This message has no child nodes'
+            )
             this.#moveMessage(msg.uid.toString(), process.env.BAD_MAILBOX)
             return
         }
@@ -201,7 +208,10 @@ export default class MailProcessor {
         else if (zipNode) {
             this.#processZipNode(zipNode, tmpdir, msg)
         } else {
-            this.#log.info({ uid: msg.uid, nodes: msg.bodyStructure.childNodes }, 'This message has no valid nodes')
+            this.#log.info(
+                { uid: msg.uid, subj: msg.envelope.subject, nodes: msg.bodyStructure.childNodes },
+                'This message has no valid nodes'
+            )
             this.#moveMessage(msg.uid.toString(), process.env.BAD_MAILBOX)
         }
     }
@@ -229,12 +239,13 @@ export default class MailProcessor {
         }
 
         try {
-            const messages = this.#client.fetch('1:*', { uid: true, bodyStructure: true })
+            const messages = this.#client.fetch('1:*', { uid: true, bodyStructure: true, envelope: true })
 
             for await (const msg of messages) {
                 try {
                     this.#processMessage(msg, timestampDir)
                 } catch (error) {
+                    this.#log({ uid: msg.uid, subj: msg.envelope.subject, error }, 'Error processing message')
                     this.#moveMessage(msg.uid.toString(), process.env.BAD_MAILBOX)
                     continue
                 }
