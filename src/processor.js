@@ -185,19 +185,23 @@ export default class MailProcessor {
 
         // Look for valid attachments
         for (const node of msg.bodyStructure.childNodes) {
-            if (!node.dispositionParameters?.filename) {
+        
+            const name = node.dispositionParameters?.filename ??
+                node.parameters?.name ?? null
+
+            if (!name) {
                 continue
             }
 
-            if (node.dispositionParameters.filename.toLowerCase().includes('.xml')) {
+            if (name.toLowerCase().includes('.xml')) {
                 xmlNode = node.part
             }
 
-            if (node.dispositionParameters.filename.toLowerCase().includes('.pdf')) {
+            if (name.toLowerCase().includes('.pdf')) {
                 pdfNode = node.part
             }
 
-            if (node.dispositionParameters.filename.toLowerCase().includes('.zip')) {
+            if (name.toLowerCase().includes('.zip')) {
                 zipNode = node.part
             }
         }
