@@ -33,6 +33,7 @@
         "@types/node": "^18.16.5",
         "@types/node-imap": "^0.9.0",
         "@types/unzipper": "^0.10.6",
+        "eslint": "^8.42.0",
         "rollup": "^3.23.0",
         "turbowatch": "^2.21.0",
         "typescript": "^5.0.4"

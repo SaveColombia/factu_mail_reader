@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import * as fs from 'node:fs/promises'
 import unzipper from 'unzipper'
 import { DateTime } from 'luxon'
@@ -71,7 +72,7 @@ export default class MailProcessor {
             const jsonPath = xmlPath.replace('.xml', '.json')
 
             await exec(buildCommand(jsonPath, xmlPath, pdfPath))
-            this.#moveMessage(msg.uid.toString(), process.env.GOOD_MAILBOX, client, this.#log)
+            this.#moveMessage(msg.uid.toString(), process.env.GOOD_MAILBOX)
         } catch (e) {
             console.error(e)
             this.#log.error({ uid: msg.uid, subj: msg.envelope.subject, error: e }, 'Error processing Message')
@@ -185,9 +186,7 @@ export default class MailProcessor {
 
         // Look for valid attachments
         for (const node of msg.bodyStructure.childNodes) {
-        
-            const name = node.dispositionParameters?.filename ??
-                node.parameters?.name ?? null
+            const name = node.dispositionParameters?.filename ?? node.parameters?.name ?? null
 
             if (!name) {
                 continue
