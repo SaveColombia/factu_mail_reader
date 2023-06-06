@@ -169,7 +169,7 @@ export default class MailProcessor {
      */
     async #processMessage(msg, timestampDir) {
         if (!isIterable(msg?.bodyStructure?.childNodes ?? null)) {
-            this.#log(
+            this.#log.error(
                 { uid: msg.uid, subj: msg.envelope.subject, error: 'This message has no child nodes' },
                 'This message has no child nodes'
             )
@@ -249,7 +249,7 @@ export default class MailProcessor {
                 try {
                     this.#processMessage(msg, timestampDir)
                 } catch (error) {
-                    this.#log({ uid: msg.uid, subj: msg.envelope.subject, error }, 'Error processing message')
+                    this.#log.error({ uid: msg.uid, subj: msg.envelope.subject, error }, 'Error processing message')
                     this.#moveMessage(msg.uid.toString(), process.env.BAD_MAILBOX)
                     continue
                 }
