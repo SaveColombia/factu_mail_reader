@@ -1,5 +1,5 @@
 import dotenv from 'dotenv'
-import { setInterval } from 'node:timers'
+import { setInterval } from 'node:timers/promises'
 import { buildLogger } from './log.js'
 import { buildImapClient } from './utils.js'
 import MailProcessor from './processor.js'
@@ -36,7 +36,7 @@ const main = async () => {
 
         const client = buildImapClient()
         await client.connect()
-        
+
         const billingParser = new BillingParser(log)
         const mailProcessor = new MailProcessor(client, log, billingParser)
 
@@ -50,8 +50,8 @@ const main = async () => {
                 log.error({ error }, error.message ?? 'Error al procesar mensajes')
             })
 
-        setInterval(() => {
-            log.info('Interval tick')
+        for await (const time of setInterval(interval, Date.now())) {
+            console.log('Tick at ' + time)
 
             mailProcessor
                 .processMessages()
@@ -62,7 +62,7 @@ const main = async () => {
                     console.log('Error al procesar mensajes')
                     log.error({ error }, error.message ?? 'Error al procesar mensajes')
                 })
-        }, interval)
+        }
     } catch (e) {
         console.error(e)
         log.error({ error: e }, e.message ?? 'Error de cliente')
