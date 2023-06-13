@@ -31,21 +31,22 @@ const main = async () => {
     const log = await buildLogger()
 
     try {
-        console.log('Daemon started')
+        console.log('Servicio iniciado')
+        log.info('Servicio iniciado')
 
         const client = buildImapClient()
         await client.connect()
 
         let lock = await client.getMailboxLock('INBOX').catch((e) => {
             console.error(e)
-            log.error('Mailbox does not exist')
+            log.error('El buzón no existe')
             process.exit(1)
         })
 
         if (!lock) {
-            console.error('Lock not acquired')
-            log.error('Lock not acquired')
-            return
+            console.error('No fue posible bloquear el acceso al buzón')
+            log.error('No fue posible bloquear el acceso al buzón')
+            process.exit(1)
         }
 
         const billingParser = new BillingParser(log)
@@ -67,7 +68,7 @@ const main = async () => {
             mailProcessor
                 .processMessages()
                 .then(() => {
-                    log.info({}, 'Lectura terminada')
+                    log.info('Lectura terminada')
                 })
                 .catch((error) => {
                     console.log('Error al procesar mensajes')
