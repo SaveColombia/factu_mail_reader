@@ -63,8 +63,8 @@ const configureOauthImapClient = () => {
  *
  * @returns {ImapFlow}
  */
-const configureUserPasswordImapClient = () =>
-    new ImapFlow({
+const configureUserPasswordImapClient = () => {
+    const client = new ImapFlow({
         host: process.env.IMAP_HOST || '',
         port: Number(process.env.IMAP_PORT || 0),
         secure: true,
@@ -74,7 +74,15 @@ const configureUserPasswordImapClient = () =>
             user: process.env.IMAP_USER || '',
             pass: process.env.IMAP_PASSWORD || '',
         },
+        socketTimeout: 900000,
     })
+
+    client.on('close', async () => {
+        await client.connect()
+    })
+
+    return client
+}
 
 /**
  * Determine whether the given `input` is iterable.
