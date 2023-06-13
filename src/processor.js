@@ -9,19 +9,16 @@ import { isIterable } from './utils.js'
 
 export default class MailProcessor {
     #client
-    #lock
     #log
     #parser
 
     /**
      * @param {ImapFlow} client
-     * @param {import('imapflow').MailboxLockObject} lock
      * @param {import('pino').Logger} log
      * @param {BillingParser} parser
      */
-    constructor(client, lock, log, parser) {
+    constructor(client, log, parser) {
         this.#client = client
-        this.#lock = lock
         this.#log = log
         this.#parser = parser
     }
@@ -38,7 +35,7 @@ export default class MailProcessor {
             const { destination } = await this.#client.messageMove(uid, mailbox, { uid: true })
             this.#log.info({ message: ['Message moved to', destination, '- MSG:', uid].join(' ') })
         } catch (e) {
-            console.error(e)
+            console.log('Error al mover mensaje a ' + mailbox)
 
             if (e instanceof Error) {
                 this.#log.error({ uid, error: e.message }, 'Error moving message')
@@ -74,7 +71,10 @@ export default class MailProcessor {
             await exec(buildCommand(jsonPath, xmlPath, pdfPath))
             this.#moveMessage(msg.uid.toString(), process.env.GOOD_MAILBOX)
         } catch (e) {
-            console.error(e)
+            console.log('Error al procesar mensaje')
+            if (e.stdout) {
+                console.log('Error: ' + e.stdout)
+            }
             this.#log.error({ uid: msg.uid, subj: msg.envelope.subject, error: e }, 'Error processing Message')
             this.#moveMessage(msg.uid.toString(), process.env.BAD_MAILBOX)
         }
@@ -113,7 +113,7 @@ export default class MailProcessor {
                     jsonPath = xmlPath.replace('.xml', '.json')
 
                     await fs.writeFile(xmlPath, entry).catch((e) => {
-                        console.error(e)
+                        console.log('Error al extraer el XML del mensaje')
                         if (e instanceof Error) {
                             this.#log.error(e.message)
                         }
@@ -125,7 +125,7 @@ export default class MailProcessor {
                     pdfPath = `${tmpdir}/${entry.path}`
 
                     await fs.writeFile(`${tmpdir}/${entry.path}`, entry).catch((e) => {
-                        console.error(e)
+                        console.log('Error al extraer el PDF del mensaje')
                         if (e instanceof Error) {
                             this.#log.error(e.message)
                         }
@@ -140,7 +140,7 @@ export default class MailProcessor {
                 const data = await this.#parser.parse(xmlPath)
 
                 if (!data) {
-                    throw new Error('Could not get data from XML')
+                    throw new Error('No se pudo obtener datos del XML')
                 }
 
                 await fs.writeFile(jsonPath, JSON.stringify(data))
@@ -152,7 +152,10 @@ export default class MailProcessor {
                 throw new Error('No contenía una factura válida')
             }
         } catch (e) {
-            console.error(e)
+            console.log('Error al procesar mensaje con ZIP')
+            if (e.stdout) {
+                console.log('Error: ' + e.stdout)
+            }
 
             this.#log.error(
                 { uid: msg.uid, subj: msg.envelope.subject, output: e.stdout?.trim() ?? '', error: e.message ?? '' },
@@ -254,15 +257,11 @@ export default class MailProcessor {
                 }
             }
         } catch (e) {
-            console.error(e)
+            console.log('Error al obtener o procesar mensajes')
 
             if (e instanceof Error) {
                 this.#log.error(e.message)
             }
-
-            this.#lock.release()
-            await this.#client.logout()
-            process.exit(1)
         }
     }
 
