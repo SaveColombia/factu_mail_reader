@@ -241,20 +241,26 @@ export default class MailProcessor {
             throw new Error('No attachments path')
         }
 
-        const timestampDir = `${process.env.ATTACHMENTS_PATH}/${DateTime.now().toFormat('yyyyMMddHHmm')}/`
+        let lock = await this.#client.getMailboxLock('INBOX')
 
-        await fs.mkdir(timestampDir, { recursive: true })
-        await fs.access(timestampDir, fs.constants.R_OK | fs.constants.W_OK)
-
-        if (typeof this.#client.mailbox === 'boolean') {
-            return
-        }
-
-        if (!this.#client.usable) {
-            return
+        if (!lock) {
+            throw new Error('No fue posible bloquear el acceso al buzón')
         }
 
         try {
+            const timestampDir = `${process.env.ATTACHMENTS_PATH}/${DateTime.now().toFormat('yyyyMMddHHmm')}/`
+
+            await fs.mkdir(timestampDir, { recursive: true })
+            await fs.access(timestampDir, fs.constants.R_OK | fs.constants.W_OK)
+
+            if (typeof this.#client.mailbox === 'boolean') {
+                throw new Error('No existe el mailbox')
+            }
+
+            if (!this.#client.usable) {
+                throw new Error('No puede usarse el cliente')
+            }
+
             const messages = this.#client.fetch('1:*', { uid: true, bodyStructure: true, envelope: true })
 
             for await (const msg of messages) {
@@ -263,12 +269,17 @@ export default class MailProcessor {
                     this.#moveMessage(msg.uid.toString(), process.env.BAD_MAILBOX)
                 })
             }
+
+            lock.release()
         } catch (e) {
             console.log('Error al obtener o procesar mensajes')
 
             if (e instanceof Error) {
+                console.log(e.message)
                 this.#log.error(e.message)
             }
+
+            lock.release()
         }
     }
 

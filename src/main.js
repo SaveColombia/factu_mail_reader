@@ -36,19 +36,7 @@ const main = async () => {
 
         const client = buildImapClient()
         await client.connect()
-
-        let lock = await client.getMailboxLock('INBOX').catch((e) => {
-            console.error(e)
-            log.error('El buzón no existe')
-            process.exit(1)
-        })
-
-        if (!lock) {
-            console.error('No fue posible bloquear el acceso al buzón')
-            log.error('No fue posible bloquear el acceso al buzón')
-            process.exit(1)
-        }
-
+        
         const billingParser = new BillingParser(log)
         const mailProcessor = new MailProcessor(client, log, billingParser)
 
