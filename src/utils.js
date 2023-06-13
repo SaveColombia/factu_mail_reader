@@ -68,8 +68,8 @@ const configureUserPasswordImapClient = () =>
         host: process.env.IMAP_HOST || '',
         port: Number(process.env.IMAP_PORT || 0),
         secure: true,
-        emitLogs: false,
-        logger: false,
+        // emitLogs: false,
+        // logger: false,
         auth: {
             user: process.env.IMAP_USER || '',
             pass: process.env.IMAP_PASSWORD || '',
