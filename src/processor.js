@@ -68,14 +68,20 @@ export default class MailProcessor {
 
             const jsonPath = xmlPath.replace('.xml', '.json')
 
+            const data = await this.#parser.parse(xmlPath)
+
+            if (!data) {
+                throw new Error('No se pudo obtener datos del XML')
+            }
+
+            await fs.writeFile(jsonPath, JSON.stringify(data))
+
             await exec(buildCommand(jsonPath, xmlPath, pdfPath))
             this.#moveMessage(msg.uid.toString(), process.env.GOOD_MAILBOX)
         } catch (e) {
-            console.log('Error al procesar mensaje')
-            if (e.stdout) {
-                console.log('Error: ' + e.stdout)
-            }
-            this.#log.error({ uid: msg.uid, subj: msg.envelope.subject, error: e }, 'Error processing Message')
+            console.log('Error:' + e.stdout ?? 'Error al procesar mensaje')
+
+            this.#log.error({ uid: msg.uid, subj: msg.envelope.subject, error: e }, 'Error al procesar mensaje')
             this.#moveMessage(msg.uid.toString(), process.env.BAD_MAILBOX)
         }
     }
@@ -91,7 +97,7 @@ export default class MailProcessor {
             const { content, meta } = await this.#client.download(msg.uid.toString(), zipNode, { uid: true })
 
             if (meta.expectedSize > 4 * 1024 * 1024) {
-                throw new Error('Size too big')
+                throw new Error('El adjunto es demasiado grande')
             }
 
             const zip = content.pipe(unzipper.Parse({ forceStream: true }))
@@ -145,6 +151,7 @@ export default class MailProcessor {
 
                 await fs.writeFile(jsonPath, JSON.stringify(data))
                 await exec(buildCommand(jsonPath, xmlPath, pdfPath))
+
                 this.#moveMessage(msg.uid.toString(), process.env.GOOD_MAILBOX)
 
                 fs.rm(tmpdir, { recursive: true, force: true })
@@ -161,6 +168,7 @@ export default class MailProcessor {
                 { uid: msg.uid, subj: msg.envelope.subject, output: e.stdout?.trim() ?? '', error: e.message ?? '' },
                 'Could not process mail data'
             )
+
             fs.rm(tmpdir, { recursive: true, force: true })
             this.#moveMessage(msg.uid.toString(), process.env.BAD_MAILBOX)
         }
@@ -170,6 +178,7 @@ export default class MailProcessor {
      *
      * @param {import('imapflow').FetchMessageObject} msg
      * @param {string} timestampDir
+     * @throws {Error}
      */
     async #processMessage(msg, timestampDir) {
         if (!isIterable(msg?.bodyStructure?.childNodes ?? null)) {
@@ -177,8 +186,8 @@ export default class MailProcessor {
                 { uid: msg.uid, subj: msg.envelope.subject, error: 'This message has no child nodes' },
                 'This message has no child nodes'
             )
-            this.#moveMessage(msg.uid.toString(), process.env.BAD_MAILBOX)
-            return
+
+            throw new Error('This message has no child nodes')
         }
 
         let xmlNode,
@@ -218,7 +227,8 @@ export default class MailProcessor {
                 { uid: msg.uid, subj: msg.envelope.subject, nodes: msg.bodyStructure.childNodes },
                 'This message has no valid nodes'
             )
-            this.#moveMessage(msg.uid.toString(), process.env.BAD_MAILBOX)
+
+            throw new Error('This message hast no valid nodes')
         }
     }
 
@@ -248,13 +258,10 @@ export default class MailProcessor {
             const messages = this.#client.fetch('1:*', { uid: true, bodyStructure: true, envelope: true })
 
             for await (const msg of messages) {
-                try {
-                    this.#processMessage(msg, timestampDir)
-                } catch (error) {
-                    this.#log.error({ uid: msg.uid, subj: msg.envelope.subject, error }, 'Error processing message')
+                this.#processMessage(msg, timestampDir).catch((e) => {
+                    this.#log.error({ uid: msg.uid, subj: msg.envelope.subject, e }, 'Error procesando el mensaje')
                     this.#moveMessage(msg.uid.toString(), process.env.BAD_MAILBOX)
-                    continue
-                }
+                })
             }
         } catch (e) {
             console.log('Error al obtener o procesar mensajes')
