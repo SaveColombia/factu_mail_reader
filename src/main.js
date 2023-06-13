@@ -18,9 +18,10 @@ access(env_path, fs.constants.R_OK).catch((e) => {
     process.exit(1)
 })
 
-const { parsed, error } = dotenv.config({ path: env_path })
+const { error } = dotenv.config({ path: env_path })
 
 if (error) {
+    console.log('No fue posible leer las variables de entorno')
     throw error
 }
 
@@ -48,19 +49,34 @@ const main = async () => {
         }
 
         const billingParser = new BillingParser(log)
-        const mailProcessor = new MailProcessor(client, lock, log, billingParser)
+        const mailProcessor = new MailProcessor(client, log, billingParser)
 
-        mailProcessor.processMessages()
+        mailProcessor
+            .processMessages()
+            .then(() => {
+                log.info('Lectura terminada')
+            })
+            .catch((error) => {
+                console.log('Error al procesar mensajes')
+                log.error({ error }, error.message ?? 'Error al procesar mensajes')
+            })
 
         setInterval(() => {
             log.info('Interval tick')
-            mailProcessor.processMessages()
+
+            mailProcessor
+                .processMessages()
+                .then(() => {
+                    log.info({}, 'Lectura terminada')
+                })
+                .catch((error) => {
+                    console.log('Error al procesar mensajes')
+                    log.error({ error }, error.message ?? 'Error al procesar mensajes')
+                })
         }, interval)
     } catch (e) {
         console.error(e)
-        if (e instanceof Error) {
-            log.error(e.message)
-        }
+        log.error({ error: e }, e.message ?? 'Error de cliente')
     }
 }
 

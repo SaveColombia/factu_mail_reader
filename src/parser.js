@@ -115,6 +115,7 @@ export default class BillingParser {
      *
      * @param {string} xmlPath
      * @returns {Promise<Billing|null>}
+     * @throws {Error}
      */
     async #parseXML(xmlPath) {
         fs.access(xmlPath, constants.R_OK)
@@ -153,7 +154,7 @@ export default class BillingParser {
 
     /**
      * Parse a XML UBL document and try to extract a Billing
-     * 
+     *
      * @param {string} xmlPath
      * @returns {Promise<Billing|null>}
      */
