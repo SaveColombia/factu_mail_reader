@@ -24,7 +24,7 @@ export default class BillingParser {
     }
 
     /**
-     * @param {BillingDocument} document
+     * @param {import('..').BillingDocument} document
      * @returns {string}
      */
     #extractID(document) {
@@ -39,7 +39,7 @@ export default class BillingParser {
 
     /**
      *
-     * @param {BillingDocument} document
+     * @param {import('..').BillingDocument} document
      * @return {string}
      */
     #extractCUFE(document) {
@@ -48,7 +48,7 @@ export default class BillingParser {
 
     /**
      *
-     * @param {BillingDocumentEntity|undefined} entity
+     * @param {import('..').BillingDocumentEntity|undefined} entity
      * @return {{nit: string, nombre: string}}
      */
     #extractEntityData(entity) {
@@ -60,7 +60,7 @@ export default class BillingParser {
 
     /**
      *
-     * @param {Partial<Attachment>} attachment
+     * @param {Partial<import('..').Attachment>} attachment
      * @returns {number}
      */
     #extractValue(attachment) {
@@ -71,8 +71,8 @@ export default class BillingParser {
 
     /**
      *
-     * @param {BillingDocument} document
-     * @returns {Attachment}
+     * @param {import('..').BillingDocument} document
+     * @returns {import('..').Attachment}
      */
     #extractAttachment(document) {
         const xml = document.Attachment.ExternalReference.Description.__cdata.replace('<![CDATA[', '').replace(']]', '')
@@ -81,15 +81,17 @@ export default class BillingParser {
 
     /**
      *
-     * @param {BillingDocument} document
-     * @returns {Billing}
+     * @param {import('..').BillingDocument} document
+     * @returns {import('..').Billing}
      */
     #extractBilling(document) {
+        const attachment = this.#extractAttachment(document)
+
         return {
-            id: this.#extractID(document),
+            id: attachment.ID ? attachment.ID : this.#extractID(document),
             cufe: this.#extractCUFE(document),
             date: document.IssueDate,
-            value: this.#extractValue(this.#extractAttachment(document)),
+            value: this.#extractValue(attachment),
             proveedor: this.#extractEntityData(document.SenderParty ?? document.AccountingSupplierParty?.Party),
             cliente: this.#extractEntityData(document.ReceiverParty ?? document.AccountingCustomerParty?.Party),
         }
@@ -97,8 +99,8 @@ export default class BillingParser {
 
     /**
      *
-     * @param {Attachment} document
-     * @returns {Billing}
+     * @param {import('..').Attachment} document
+     * @returns {import('..').Billing}
      */
     #extractAttachmentBilling(document) {
         return {
@@ -113,22 +115,36 @@ export default class BillingParser {
 
     /**
      *
+     * @param {string|Buffer} path
+     * @returns {Promise<import('..').BillingDocumentXML|null>}
+     */
+    async #parse(path) {
+        const data = this.#parser.parse(await fs.readFile(path))
+
+        if (!data) {
+            return null
+        }
+
+        return data
+    }
+
+    /**
+     *
      * @param {string} xmlPath
-     * @returns {Promise<Billing|null>}
+     * @returns {Promise<import('..').Billing|null>}
      * @throws {Error}
      */
     async #parseXML(xmlPath) {
         fs.access(xmlPath, constants.R_OK)
 
-        /** @type {BillingDocumentXML} parserXML */
-        const parsedXML = this.#parser.parse(await fs.readFile(xmlPath))
+        const parsedXML = await this.#parse(await fs.readFile(xmlPath))
 
         if (!parsedXML) {
-            throw new Error('XML could not be parsed')
+            throw new Error('El XML no pudo ser leido')
         }
 
         if (!(parsedXML.Invoice || parsedXML.AttachedDocument || parsedXML.CreditNote)) {
-            throw new Error('XML had no valid data')
+            throw new Error('El XML no contiene datos válidos')
         }
 
         if (parsedXML.Invoice) {
@@ -156,7 +172,7 @@ export default class BillingParser {
      * Parse a XML UBL document and try to extract a Billing
      *
      * @param {string} xmlPath
-     * @returns {Promise<Billing|null>}
+     * @returns {Promise<import('..').Billing|null>}
      */
     async parse(xmlPath) {
         return await this.#parseXML(xmlPath)

@@ -74,7 +74,6 @@ const configureUserPasswordImapClient = () => {
             user: process.env.IMAP_USER || '',
             pass: process.env.IMAP_PASSWORD || '',
         },
-        socketTimeout: 900000,
     })
 
     client.on('close', async () => {

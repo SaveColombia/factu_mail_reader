@@ -245,10 +245,12 @@ export default class MailProcessor {
             throw new Error('No puede utilizarse este cliente')
         }
 
-        let lock = await this.#client.getMailboxLock('INBOX')
+        let lock = null
 
-        if (!lock) {
-            throw new Error('No fue posible bloquear el acceso al buzón')
+        try {
+            lock = await this.#client.getMailboxLock('INBOX')
+        } catch (error) {
+            throw new Error("No pouse posible bloquear el acceso al buzón")
         }
 
         if (typeof this.#client.mailbox === 'boolean') {

@@ -1,10 +1,10 @@
-type BillingDocumentXML = {
+export interface BillingDocumentXML  {
     Invoice?: Attachment
     CreditNote?: Attachment
     AttachedDocument?: BillingDocument
 }
 
-type BillingDocument = {
+export interface BillingDocument  {
     UUID?: string // CUFE
     ID?: string | null | 'null'
     AltID?: string | null | 'null'
@@ -27,13 +27,13 @@ type BillingDocument = {
     AccountingCustomerParty?: { Party: BillingDocumentEntity }
 }
 
-type CreditNote = {}
+export interface CreditNote  {}
 
-type BillingDocumentEntity = {
+export interface BillingDocumentEntity  {
     PartyTaxScheme: { CompanyID: string; RegistrationName: string }
 }
 
-type Attachment = {
+export interface Attachment  {
     ID: string
     UUID: string
     IssueDate: string
@@ -53,7 +53,7 @@ type Attachment = {
     Invoice?: Attachment
 }
 
-type Billing = {
+export interface Billing  {
     id: string
     cufe: string
     date: string
@@ -62,7 +62,7 @@ type Billing = {
     cliente: BillingEntity
 }
 
-type BillingEntity = {
+export interface BillingEntity  {
     nit: string
     nombre: string
 }
