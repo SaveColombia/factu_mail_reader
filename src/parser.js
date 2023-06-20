@@ -25,16 +25,22 @@ export default class BillingParser {
 
     /**
      * @param {import('..').BillingDocument} document
+     * @param {import('..').Attachment | null | undefined} attachment
      * @returns {string}
      */
-    #extractID(document) {
-        return (
+    #extractID(document, attachment) {
+        let id = ''
+
+        id =
+            attachment.ID ??
+            attachment.Invoice.ID ??
             (document.ParentDocumentID == 'null' ? null : document.ParentDocumentID) ??
             document.AltID ??
             document.ParentDocumentLineReference?.DocumentReference.ID ??
             document.ID ??
             ''
-        )
+
+        return id
     }
 
     /**
@@ -88,7 +94,7 @@ export default class BillingParser {
         const attachment = this.#extractAttachment(document)
 
         return {
-            id: attachment.ID ? attachment.ID : this.#extractID(document),
+            id: this.#extractID(document, attachment),
             cufe: this.#extractCUFE(document),
             date: document.IssueDate,
             value: this.#extractValue(attachment),
