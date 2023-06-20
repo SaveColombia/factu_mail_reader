@@ -250,7 +250,9 @@ export default class MailProcessor {
         try {
             lock = await this.#client.getMailboxLock('INBOX')
         } catch (error) {
-            throw new Error("No pouse posible bloquear el acceso al buzón")
+            console.log(error)
+            this.#log.error(error, 'No fue posible bloquear el acceso al buzón')
+            throw new Error('No fue posible bloquear el acceso al buzón')
         }
 
         if (typeof this.#client.mailbox === 'boolean') {
