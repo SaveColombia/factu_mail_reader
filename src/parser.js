@@ -137,7 +137,7 @@ export default class BillingParser {
     async #parseXML(xmlPath) {
         fs.access(xmlPath, constants.R_OK)
 
-        const parsedXML = await this.#parse(await fs.readFile(xmlPath))
+        const parsedXML = await this.#parse(xmlPath)
 
         if (!parsedXML) {
             throw new Error('El XML no pudo ser leido')
