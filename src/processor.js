@@ -158,15 +158,17 @@ export default class MailProcessor {
             } else {
                 throw new Error('No contenía una factura válida')
             }
+
         } catch (e) {
             console.log('Error al procesar mensaje con ZIP')
+
             if (e.stdout) {
                 console.log('Error: ' + e.stdout)
             }
 
             this.#log.error(
                 { uid: msg.uid, subj: msg.envelope.subject, output: e.stdout?.trim() ?? '', error: e.message ?? '' },
-                'Could not process mail data'
+                'No fue posible procesar los datos del correo'
             )
 
             fs.rm(tmpdir, { recursive: true, force: true })

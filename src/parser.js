@@ -29,18 +29,16 @@ export default class BillingParser {
      * @returns {string}
      */
     #extractID(document, attachment) {
-        let id = ''
-
-        id =
-            attachment.ID ??
-            attachment.Invoice.ID ??
-            (document.ParentDocumentID == 'null' ? null : document.ParentDocumentID) ??
+        return (
+            attachment?.ID ??
+            attachment?.Invoice?.ID ??
+            attachment?.CreditNote?.ID ??
+            (document.ParentDocumentID === 'null' ? null : document.ParentDocumentID ?? null) ??
             document.AltID ??
             document.ParentDocumentLineReference?.DocumentReference.ID ??
             document.ID ??
             ''
-
-        return id
+        )
     }
 
     /**
@@ -81,8 +79,9 @@ export default class BillingParser {
      * @returns {import('..').Attachment}
      */
     #extractAttachment(document) {
-        const xml = document.Attachment.ExternalReference.Description.__cdata.replace('<![CDATA[', '').replace(']]', '')
-        return this.#parser.parse(xml)
+        return this.#parser.parse(
+            document.Attachment.ExternalReference.Description.__cdata.replace('<![CDATA[', '').replace(']]', '')
+        )
     }
 
     /**
@@ -109,8 +108,10 @@ export default class BillingParser {
      * @returns {import('..').Billing}
      */
     #extractAttachmentBilling(document) {
+        const attachment = this.#extractAttachment(document)
+
         return {
-            id: document.ID,
+            id: this.#extractID(document, attachment),
             cufe: document.UUID,
             date: document.IssueDate,
             value: this.#extractValue(document),
@@ -153,22 +154,27 @@ export default class BillingParser {
             throw new Error('El XML no contiene datos válidos')
         }
 
-        if (parsedXML.Invoice) {
-            console.log('Found an Invoice')
-            this.#log.info('Found an Invoice')
-            return this.#extractAttachmentBilling(parsedXML.Invoice)
-        }
+        try {
+            if (parsedXML.Invoice) {
+                console.log('Found an Invoice')
+                this.#log.info('Found an Invoice')
+                return this.#extractAttachmentBilling(parsedXML.Invoice)
+            }
 
-        if (parsedXML.CreditNote) {
-            console.log('Found a Credit Note')
-            this.#log.info('Found a Credit Note')
-            return this.#extractAttachmentBilling(parsedXML.CreditNote)
-        }
+            if (parsedXML.CreditNote) {
+                console.log('Found a Credit Note')
+                this.#log.info('Found a Credit Note')
+                return this.#extractAttachmentBilling(parsedXML.CreditNote)
+            }
 
-        if (parsedXML.AttachedDocument) {
-            console.log('Found an AttachedDocument')
-            this.#log.info('Found an AttachedDocument')
-            return this.#extractBilling(parsedXML.AttachedDocument)
+            if (parsedXML.AttachedDocument) {
+                console.log('Found an AttachedDocument')
+                this.#log.info('Found an AttachedDocument')
+                return this.#extractBilling(parsedXML.AttachedDocument)
+            }
+        } catch (e) {
+            this.#log.error(e, 'Error al leer los datos de la factura')
+            throw new Error('Error al leer los datos de la factura')
         }
 
         return null
@@ -181,6 +187,12 @@ export default class BillingParser {
      * @returns {Promise<import('..').Billing|null>}
      */
     async parse(xmlPath) {
-        return await this.#parseXML(xmlPath)
+        const data = await this.#parseXML(xmlPath)
+
+        if (!data.id) {
+            throw new Error('La factura no tiene un ID')
+        }
+
+        return data
     }
 }

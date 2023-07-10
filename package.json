@@ -8,6 +8,7 @@
         "build": "rollup -c rollup.config.js --bundleConfigAsCjs",
         "prestart": "npm run build",
         "start": "node dist/main.cjs",
+        "start-dev": "ts-node src/main.js",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "keywords": [],
@@ -35,6 +36,7 @@
         "@types/unzipper": "^0.10.6",
         "eslint": "^8.42.0",
         "rollup": "^3.23.0",
+        "ts-node": "^10.9.1",
         "turbowatch": "^2.21.0",
         "typescript": "^5.0.4"
     }
