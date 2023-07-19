@@ -30,15 +30,30 @@ export default class MailProcessor {
      */
     async #moveMessage(uid, mailbox) {
         try {
-            this.#log.info({ message: ['Requesting move to', mailbox, '- MSG:', uid].join(' ') })
+            this.#log.info({
+                message: ['Requesting move to', mailbox, '- MSG:', uid].join(
+                    ' '
+                ),
+            })
 
-            const { destination } = await this.#client.messageMove(uid, mailbox, { uid: true })
-            this.#log.info({ message: ['Message moved to', destination, '- MSG:', uid].join(' ') })
+            const { destination } = await this.#client.messageMove(
+                uid,
+                mailbox,
+                { uid: true }
+            )
+            this.#log.info({
+                message: ['Message moved to', destination, '- MSG:', uid].join(
+                    ' '
+                ),
+            })
         } catch (e) {
             console.log('Error al mover mensaje a ' + mailbox)
 
             if (e instanceof Error) {
-                this.#log.error({ uid, error: e.message }, 'Error moving message')
+                this.#log.error(
+                    { uid, error: e.message },
+                    'Error moving message'
+                )
                 return
             }
 
@@ -56,8 +71,12 @@ export default class MailProcessor {
     async #processXmlPdfNode(xmlNode, pdfNode, tmpdir, msg) {
         try {
             const [xmlDownload, pdfDownload] = await Promise.all([
-                this.#client.download(msg.uid.toString(), xmlNode, { uid: true }),
-                this.#client.download(msg.uid.toString(), pdfNode, { uid: true }),
+                this.#client.download(msg.uid.toString(), xmlNode, {
+                    uid: true,
+                }),
+                this.#client.download(msg.uid.toString(), pdfNode, {
+                    uid: true,
+                }),
             ])
 
             const xmlPath = `${tmpdir}/${xmlDownload.meta.filename}`
@@ -81,20 +100,26 @@ export default class MailProcessor {
         } catch (e) {
             console.log('Error:' + e.stdout ?? 'Error al procesar mensaje')
 
-            this.#log.error({ uid: msg.uid, subj: msg.envelope.subject, error: e }, 'Error al procesar mensaje')
+            this.#log.error(
+                { uid: msg.uid, subj: msg.envelope.subject, error: e },
+                'Error al procesar mensaje'
+            )
             this.#moveMessage(msg.uid.toString(), process.env.BAD_MAILBOX)
         }
     }
 
     /**
-     *
      * @param {string} zipNode
      * @param {string} tmpdir
      * @param {import('imapflow').FetchMessageObject} msg
      */
     #processZipNode = async (zipNode, tmpdir, msg) => {
         try {
-            const { content, meta } = await this.#client.download(msg.uid.toString(), zipNode, { uid: true })
+            const { content, meta } = await this.#client.download(
+                msg.uid.toString(),
+                zipNode,
+                { uid: true }
+            )
 
             if (meta.expectedSize > 4 * 1024 * 1024) {
                 throw new Error('El adjunto es demasiado grande')
@@ -130,12 +155,14 @@ export default class MailProcessor {
                     pdf = entry
                     pdfPath = `${tmpdir}/${entry.path}`
 
-                    await fs.writeFile(`${tmpdir}/${entry.path}`, entry).catch((e) => {
-                        console.log('Error al extraer el PDF del mensaje')
-                        if (e instanceof Error) {
-                            this.#log.error(e.message)
-                        }
-                    })
+                    await fs
+                        .writeFile(`${tmpdir}/${entry.path}`, entry)
+                        .catch((e) => {
+                            console.log('Error al extraer el PDF del mensaje')
+                            if (e instanceof Error) {
+                                this.#log.error(e.message)
+                            }
+                        })
                 }
 
                 // Required or the stream bonks
@@ -149,6 +176,10 @@ export default class MailProcessor {
                     throw new Error('No se pudo obtener datos del XML')
                 }
 
+                if ((process.env.DEBUG ?? false) === 'true') {
+                    console.log(data)
+                }
+
                 await fs.writeFile(jsonPath, JSON.stringify(data))
                 await exec(buildCommand(jsonPath, xmlPath, pdfPath))
 
@@ -158,7 +189,6 @@ export default class MailProcessor {
             } else {
                 throw new Error('No contenía una factura válida')
             }
-
         } catch (e) {
             console.log('Error al procesar mensaje con ZIP')
 
@@ -167,7 +197,12 @@ export default class MailProcessor {
             }
 
             this.#log.error(
-                { uid: msg.uid, subj: msg.envelope.subject, output: e.stdout?.trim() ?? '', error: e.message ?? '' },
+                {
+                    uid: msg.uid,
+                    subj: msg.envelope.subject,
+                    output: e.stdout?.trim() ?? '',
+                    error: e.message ?? '',
+                },
                 'No fue posible procesar los datos del correo'
             )
 
@@ -185,7 +220,11 @@ export default class MailProcessor {
     async #processMessage(msg, timestampDir) {
         if (!isIterable(msg?.bodyStructure?.childNodes ?? null)) {
             this.#log.error(
-                { uid: msg.uid, subj: msg.envelope.subject, error: 'This message has no child nodes' },
+                {
+                    uid: msg.uid,
+                    subj: msg.envelope.subject,
+                    error: 'This message has no child nodes',
+                },
                 'This message has no child nodes'
             )
 
@@ -200,7 +239,10 @@ export default class MailProcessor {
 
         // Look for valid attachments
         for (const node of msg.bodyStructure.childNodes) {
-            const name = node.dispositionParameters?.filename ?? node.parameters?.name ?? null
+            const name =
+                node.dispositionParameters?.filename ??
+                node.parameters?.name ??
+                null
 
             if (!name) {
                 continue
@@ -226,7 +268,11 @@ export default class MailProcessor {
             this.#processZipNode(zipNode, tmpdir, msg)
         } else {
             this.#log.info(
-                { uid: msg.uid, subj: msg.envelope.subject, nodes: msg.bodyStructure.childNodes },
+                {
+                    uid: msg.uid,
+                    subj: msg.envelope.subject,
+                    nodes: msg.bodyStructure.childNodes,
+                },
                 'This message has no valid nodes'
             )
 
@@ -262,17 +308,29 @@ export default class MailProcessor {
         }
 
         try {
-            const timestampDir = `${process.env.ATTACHMENTS_PATH}/${DateTime.now().toFormat('yyyyMMddHHmm')}/`
+            const timestampDir = `${
+                process.env.ATTACHMENTS_PATH
+            }/${DateTime.now().toFormat('yyyyMMddHHmm')}/`
 
             await fs.mkdir(timestampDir, { recursive: true })
             await fs.access(timestampDir, fs.constants.R_OK | fs.constants.W_OK)
 
-            const messages = this.#client.fetch('1:*', { uid: true, bodyStructure: true, envelope: true })
+            const messages = this.#client.fetch('1:*', {
+                uid: true,
+                bodyStructure: true,
+                envelope: true,
+            })
 
             for await (const msg of messages) {
                 this.#processMessage(msg, timestampDir).catch((e) => {
-                    this.#log.error({ uid: msg.uid, subj: msg.envelope.subject, e }, 'Error procesando el mensaje')
-                    this.#moveMessage(msg.uid.toString(), process.env.BAD_MAILBOX)
+                    this.#log.error(
+                        { uid: msg.uid, subj: msg.envelope.subject, e },
+                        'Error procesando el mensaje'
+                    )
+                    this.#moveMessage(
+                        msg.uid.toString(),
+                        process.env.BAD_MAILBOX
+                    )
                 })
             }
 

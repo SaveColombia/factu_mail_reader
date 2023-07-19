@@ -160,8 +160,12 @@ export default class BillingParser {
      * @returns {Billing}
      */
     #billingFromUblDocument(document, billingType) {
+        if ((process.env.DEBUG ?? false) === 'true') {
+            console.log(document)
+        }
+
         return {
-            id: document,
+            id: document.ID,
             cufe: document.UUID,
             date: document.IssueDate,
             value: document.LegalMonetaryTotal.PayableAmount,
@@ -171,8 +175,11 @@ export default class BillingParser {
             cliente: this.#extractEntityData(
                 document.AccountingCustomerParty.Party
             ),
-            paymentDueDate: document?.PaymentMeans.PaymentDueDate ?? '',
-            paymentMeanType: document?.PaymentMeans.ID ?? 1,
+            paymentMeanType: document?.PaymentMeans.ID,
+            paymentDueDate:
+                document?.PaymentMeans.ID === 2
+                    ? document?.PaymentMeans.PaymentDueDate
+                    : null,
             billingType: billingType,
         }
     }
