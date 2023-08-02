@@ -104,6 +104,8 @@ export default class MailProcessor {
                 { uid: msg.uid, subj: msg.envelope.subject, error: e },
                 'Error al procesar mensaje'
             )
+            console.error(e)
+
             this.#moveMessage(msg.uid.toString(), process.env.BAD_MAILBOX)
         }
     }
@@ -201,10 +203,12 @@ export default class MailProcessor {
                     uid: msg.uid,
                     subj: msg.envelope.subject,
                     output: e.stdout?.trim() ?? '',
-                    error: e.message ?? '',
+                    error: e
                 },
                 'No fue posible procesar los datos del correo'
             )
+
+            console.error(e)
 
             fs.rm(tmpdir, { recursive: true, force: true })
             this.#moveMessage(msg.uid.toString(), process.env.BAD_MAILBOX)
@@ -324,9 +328,12 @@ export default class MailProcessor {
             for await (const msg of messages) {
                 this.#processMessage(msg, timestampDir).catch((e) => {
                     this.#log.error(
-                        { uid: msg.uid, subj: msg.envelope.subject, e },
+                        { uid: msg.uid, subj: msg.envelope.subject, error: e },
                         'Error procesando el mensaje'
                     )
+                    
+                    console.error(e)
+
                     this.#moveMessage(
                         msg.uid.toString(),
                         process.env.BAD_MAILBOX
