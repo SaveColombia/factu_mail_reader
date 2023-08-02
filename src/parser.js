@@ -206,7 +206,7 @@ export default class BillingParser {
      * @throws {Error}
      */
     async #parseXML(xmlPath) {
-        fs.access(xmlPath, constants.R_OK)
+        await fs.access(xmlPath, constants.R_OK)
 
         const parsedXML = await this.#parse(xmlPath)
 
